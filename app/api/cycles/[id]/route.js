@@ -1,9 +1,7 @@
 // File: app/api/cycles/[id]/route.js
 
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
 
 /**
  * @description Handles GET requests to fetch a SINGLE cycle by its ID.
