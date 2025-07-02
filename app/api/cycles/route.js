@@ -22,7 +22,36 @@ export async function GET(request) {
       include: { technician: true },
       orderBy: { createdAt: 'desc' },
     });
-    return NextResponse.json(cycles);
+
+    let stats = {};
+    if (session.user.role === 'APPROVER') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const pendingCycles = await prisma.cycle.count({
+        where: { status: 'SUBMITTED' },
+      });
+      const recentlyApproved = await prisma.cycle.count({
+        where: { status: 'APPROVED', approvedAt: { gte: today } },
+      });
+
+      const timeLogsToday = await prisma.timeLog.findMany({
+        where: { clockIn: { gte: today }, status: 'CLOCKED_OUT' },
+      });
+
+      const totalHours = timeLogsToday.reduce((acc, log) => {
+        const duration = new Date(log.clockOut) - new Date(log.clockIn);
+        return acc + duration / (1000 * 60 * 60);
+      }, 0);
+
+      stats = {
+        pendingCycles,
+        recentlyApproved,
+        totalHoursToday: totalHours.toFixed(1),
+      };
+    }
+
+    return NextResponse.json({ cycles, stats });
   } catch (error) {
     console.error('GET /api/cycles Error:', error);
     return NextResponse.json(

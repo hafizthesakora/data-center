@@ -6,13 +6,15 @@ import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import TimeClock from './components/TimeClock'; // For Technicians
-import TimeLogViewer from './components/TimeLogViewer'; // For Approvers// Assuming TimeClock is in app/components/
+import TimeClock from './components/TimeClock';
+import TimeLogViewer from './components/TimeLogViewer';
+import DashboardStats from './components/DashboardStats';
 import Image from 'next/image';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [cycles, setCycles] = useState([]);
+  const [stats, setStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
@@ -22,27 +24,31 @@ export default function Dashboard() {
       router.push('/login');
     }
     if (status === 'authenticated') {
-      const fetchCycles = async () => {
+      const fetchData = async () => {
+        setIsLoading(true);
         try {
           const res = await fetch('/api/cycles');
           if (res.ok) {
-            const data = await res.json();
-            setCycles(data);
+            // --- CRITICAL FIX ---
+            // Destructure the 'cycles' and 'stats' properties from the response object
+            const { cycles, stats } = await res.json();
+            setCycles(cycles || []); // Set only the array of cycles, default to empty array if undefined
+            if (stats) setStats(stats);
           } else {
-            console.error('Failed to fetch cycles');
+            console.error('Failed to fetch dashboard data');
           }
         } catch (error) {
-          console.error('Error fetching cycles:', error);
+          console.error('Error fetching dashboard data:', error);
         } finally {
           setIsLoading(false);
         }
       };
-      fetchCycles();
+      fetchData();
     }
   }, [status, router]);
 
   const createCycle = async () => {
-    // Check if there's an existing 'DRAFT' cycle for this user
+    // This check will now work correctly since 'cycles' is an array
     const hasDraft = cycles.some(
       (cycle) =>
         cycle.technicianId === session.user.id && cycle.status === 'DRAFT'
@@ -57,7 +63,6 @@ export default function Dashboard() {
     const res = await fetch('/api/cycles', { method: 'POST' });
     if (res.ok) {
       const newCycle = await res.json();
-      // Add the new cycle to the top of the list and navigate to it
       setCycles((prevCycles) => [newCycle, ...prevCycles]);
       router.push(`/cycles/${newCycle.id}`);
     } else {
@@ -76,6 +81,7 @@ export default function Dashboard() {
     );
   }
 
+  // This filter will now work correctly since 'cycles' is guaranteed to be an array
   const filteredCycles = cycles.filter((cycle) =>
     cycle.technician.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -117,7 +123,9 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {session?.user?.role === 'APPROVER' && <DashboardStats stats={stats} />}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           <main className="lg:col-span-2">
             <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
