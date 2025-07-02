@@ -62,13 +62,54 @@ export default function CycleDetail() {
   };
 
   if (isLoading) {
-    return <div className="text-center p-10">Loading cycle details...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600 mb-6"></div>
+          <p className="text-slate-600 font-semibold text-lg">
+            Loading cycle details...
+          </p>
+          <p className="text-slate-400 text-sm mt-2">
+            Please wait while we fetch the data
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (!cycle) {
     return (
-      <div className="text-center p-10 text-red-500">
-        Could not load cycle data.
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-rose-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <p className="text-red-600 font-semibold text-lg mb-2">
+            Could not load cycle data
+          </p>
+          <p className="text-slate-500 mb-4">
+            The requested cycle may not exist or you don't have permission to
+            view it
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          >
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
@@ -78,104 +119,317 @@ export default function CycleDetail() {
     cycle.entries.length === 7 &&
     cycle.entries.every((entry) => entry.isCompleted);
 
+  const completedCount = cycle.entries.filter(
+    (entry) => entry.isCompleted
+  ).length;
+  const progressPercentage = (completedCount / 7) * 100;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header with gradient background */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-xl">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
                 Cycle Details
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Created by {cycle.technician?.name || 'N/A'} on{' '}
-                {new Date(cycle.createdAt).toLocaleString()}
-              </p>
+              <div className="flex items-center mt-2 text-slate-300">
+                <div className="flex items-center mr-4">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mr-2">
+                    <span className="text-white text-xs font-bold">
+                      {cycle.technician?.name?.charAt(0) || 'N'}
+                    </span>
+                  </div>
+                  <span className="font-medium">
+                    {cycle.technician?.name || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className="text-sm">
+                    {new Date(cycle.createdAt).toLocaleString()}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="mt-4 md:mt-0 flex items-center space-x-4">
-              <span
-                className={`px-3 py-1 text-sm font-semibold rounded-full ${
+            <div className="flex items-center space-x-4">
+              <div
+                className={`px-4 py-2 rounded-xl font-bold text-sm shadow-lg ${
                   cycle.status === 'APPROVED'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
                     : cycle.status === 'SUBMITTED'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
+                    : 'bg-gradient-to-r from-slate-500 to-gray-500 text-white'
                 }`}
               >
                 {cycle.status}
-              </span>
+              </div>
               <button
                 onClick={() => router.push('/')}
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl border border-slate-600"
               >
-                Back to Dashboard
+                <div className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  Back to Dashboard
+                </div>
               </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Entries
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Progress Card */}
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800">
+              Progress Overview
             </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {cycle.entries.map((entry) => (
-                <li
+            <div className="text-sm font-semibold text-slate-600">
+              {completedCount} of 7 entries completed
+            </div>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
+            <div
+              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+          <div className="text-xs text-slate-500 text-right">
+            {Math.round(progressPercentage)}% complete
+          </div>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300">
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">
+                Work Entries
+              </h2>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center bg-emerald-50 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                  <span className="text-xs font-semibold text-emerald-700">
+                    Completed
+                  </span>
+                </div>
+                <div className="flex items-center bg-red-50 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                  <span className="text-xs font-semibold text-red-700">
+                    Pending
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+              {cycle.entries.map((entry, index) => (
+                <div
                   key={entry.id}
-                  className="border border-gray-200 rounded-lg p-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                  className={`relative group p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                    entry.isCompleted
+                      ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 hover:border-emerald-300'
+                      : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200 hover:border-red-300'
+                  }`}
                 >
-                  {/* --- CRITICAL FIX: Conditional Linking --- */}
-                  <Link
-                    href={
+                  {/* Status indicator */}
+                  <div
+                    className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md ${
                       entry.isCompleted
-                        ? `/entries/${entry.id}/view`
-                        : `/entries/${entry.id}`
-                    }
-                    className="font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    Entry {entry.entryNumber}
-                  </Link>
-                  <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      entry.isCompleted
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-red-200 text-red-800'
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-500'
+                        : 'bg-gradient-to-r from-red-500 to-rose-500'
                     }`}
                   >
-                    {entry.isCompleted ? 'COMPLETED' : 'PENDING'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    {entry.isCompleted ? (
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M12 8v4m0 4h.01"
+                        />
+                      </svg>
+                    )}
+                  </div>
 
-          <div className="mt-8 pt-6 border-t flex justify-end space-x-3">
-            {session?.user?.role === 'TECHNICIAN' &&
-              cycle.status === 'DRAFT' && (
-                <button
-                  onClick={() => updateCycleStatus('SUBMITTED')}
-                  disabled={!allEntriesComplete}
-                  className="px-6 py-2 rounded-md font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Submit Cycle
-                </button>
-              )}
-            {session?.user?.role === 'APPROVER' &&
-              cycle.status === 'SUBMITTED' && (
-                <button
-                  onClick={() => updateCycleStatus('APPROVED')}
-                  className="px-6 py-2 rounded-md font-semibold text-white bg-green-600 hover:bg-green-700"
-                >
-                  Approve Cycle
-                </button>
-              )}
+                  <div className="flex flex-col items-center text-center">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-md ${
+                        entry.isCompleted
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
+                          : 'bg-gradient-to-r from-slate-400 to-gray-400 text-white'
+                      }`}
+                    >
+                      <span className="font-bold text-lg">
+                        {entry.entryNumber}
+                      </span>
+                    </div>
+
+                    <Link
+                      href={
+                        entry.isCompleted
+                          ? `/entries/${entry.id}/view`
+                          : `/entries/${entry.id}`
+                      }
+                      className={`font-semibold mb-2 transition-colors duration-200 ${
+                        entry.isCompleted
+                          ? 'text-emerald-700 hover:text-emerald-800'
+                          : 'text-red-700 hover:text-red-800'
+                      }`}
+                    >
+                      Entry {entry.entryNumber}
+                    </Link>
+
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm ${
+                        entry.isCompleted
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
+                          : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                      }`}
+                    >
+                      {entry.isCompleted ? 'COMPLETED' : 'PENDING'}
+                    </span>
+                  </div>
+
+                  {/* Hover effect overlay */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Action Buttons Section */}
+            <div className="border-t border-slate-200 pt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  {!allEntriesComplete &&
+                    cycle.status === 'DRAFT' &&
+                    session?.user?.role === 'TECHNICIAN' && (
+                      <div className="flex items-center bg-amber-50 p-4 rounded-xl border border-amber-200">
+                        <svg
+                          className="w-5 h-5 text-amber-500 mr-3 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <p className="text-amber-700 font-medium text-sm">
+                          All 7 entries must be completed before you can submit
+                          the cycle.
+                        </p>
+                      </div>
+                    )}
+                </div>
+
+                <div className="flex space-x-3">
+                  {session?.user?.role === 'TECHNICIAN' &&
+                    cycle.status === 'DRAFT' && (
+                      <button
+                        onClick={() => updateCycleStatus('SUBMITTED')}
+                        disabled={!allEntriesComplete}
+                        className={`px-8 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 transform ${
+                          allEntriesComplete
+                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white hover:shadow-xl hover:scale-105'
+                            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                            />
+                          </svg>
+                          Submit Cycle
+                        </div>
+                      </button>
+                    )}
+
+                  {session?.user?.role === 'APPROVER' &&
+                    cycle.status === 'SUBMITTED' && (
+                      <button
+                        onClick={() => updateCycleStatus('APPROVED')}
+                        className="px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                      >
+                        <div className="flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Approve Cycle
+                        </div>
+                      </button>
+                    )}
+                </div>
+              </div>
+            </div>
           </div>
-          {!allEntriesComplete &&
-            cycle.status === 'DRAFT' &&
-            session?.user?.role === 'TECHNICIAN' && (
-              <p className="text-right text-sm text-red-600 mt-2">
-                All 7 entries must be completed before you can submit the cycle.
-              </p>
-            )}
         </div>
       </div>
     </div>
