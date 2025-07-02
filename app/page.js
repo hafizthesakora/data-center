@@ -6,7 +6,9 @@ import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import TimeClock from './components/TimeClock'; // Assuming TimeClock is in app/components/
+import TimeClock from './components/TimeClock'; // For Technicians
+import TimeLogViewer from './components/TimeLogViewer'; // For Approvers// Assuming TimeClock is in app/components/
+import Image from 'next/image';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -85,8 +87,14 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
+              {/* <Image
+                src="logo.svg"
+                alt="Datacenter Logo"
+                width={100}
+                height={100}
+              /> */}
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                Dashboard
+                Eni Ghana Datacenter Dashboard
               </h1>
               <div className="flex items-center mt-2">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
@@ -118,7 +126,7 @@ export default function Dashboard() {
                     Work Cycles
                   </h2>
                   <p className="text-slate-600">
-                    Manage and track your work cycles
+                    Manage and track your recording cycles
                   </p>
                 </div>
                 {session?.user?.role === 'TECHNICIAN' && (
@@ -306,6 +314,7 @@ export default function Dashboard() {
 
           <aside className="lg:col-span-1">
             {session?.user?.role === 'TECHNICIAN' && <TimeClock />}
+            {session?.user?.role === 'APPROVER' && <TimeLogViewer />}
           </aside>
         </div>
       </div>

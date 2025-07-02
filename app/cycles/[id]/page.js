@@ -114,7 +114,6 @@ export default function CycleDetail() {
     );
   }
 
-  // --- CRITICAL FIX: Correctly check if all 7 entries are complete ---
   const allEntriesComplete =
     cycle.entries.length === 7 &&
     cycle.entries.every((entry) => entry.isCompleted);
@@ -336,8 +335,8 @@ export default function CycleDetail() {
                     </span>
                   </div>
 
-                  {/* Hover effect overlay */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  {/* Hover effect overlay - CRITICAL FIX APPLIED HERE */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
               ))}
             </div>

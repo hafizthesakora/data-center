@@ -12,7 +12,9 @@ async function getSession() {
 }
 
 /**
- * @description Handles GET request to fetch the current user's latest time log status.
+ * @description Handles GET request to fetch time log data based on user role.
+ * - Approvers get all logs.
+ * - Technicians get their own latest log.
  */
 export async function GET(request) {
   const session = await getSession();
@@ -21,12 +23,25 @@ export async function GET(request) {
   }
 
   try {
-    const latestLog = await prisma.timeLog.findFirst({
-      where: { technicianId: session.user.id },
-      orderBy: { clockIn: 'desc' },
-    });
-
-    return NextResponse.json(latestLog);
+    if (session.user.role === 'APPROVER') {
+      // Approvers get all time logs from all technicians
+      const allLogs = await prisma.timeLog.findMany({
+        include: {
+          technician: {
+            select: { name: true }, // Only select the name to avoid sending sensitive user data
+          },
+        },
+        orderBy: { clockIn: 'desc' },
+      });
+      return NextResponse.json(allLogs);
+    } else {
+      // Technicians get only their own latest log
+      const latestLog = await prisma.timeLog.findFirst({
+        where: { technicianId: session.user.id },
+        orderBy: { clockIn: 'desc' },
+      });
+      return NextResponse.json(latestLog);
+    }
   } catch (error) {
     console.error('GET /api/timelog Error:', error);
     return NextResponse.json(
@@ -46,7 +61,6 @@ export async function POST(request) {
   }
 
   try {
-    // Check for an existing "CLOCKED_IN" log
     const existingLog = await prisma.timeLog.findFirst({
       where: {
         technicianId: session.user.id,

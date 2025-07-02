@@ -8,15 +8,15 @@ const prisma = new PrismaClient();
 /**
  * @description Handles GET requests to fetch a SINGLE entry by its ID.
  */
-export async function GET(request, context) {
-  // --- CRITICAL FIX ---
-  // Using the standard 'context.params' object to get the dynamic ID.
-  // This is the most robust way and avoids the 405 error.
-  const { id } = context.params;
+export async function GET(request) {
+  // --- ROBUST FIX: Manually parsing the ID from the request URL ---
+  const url = new URL(request.url);
+  const pathSegments = url.pathname.split('/');
+  const id = pathSegments[pathSegments.length - 1];
 
   if (!id) {
     return NextResponse.json(
-      { error: 'Entry ID is missing from parameters' },
+      { error: 'Entry ID could not be determined from URL' },
       { status: 400 }
     );
   }
@@ -43,13 +43,15 @@ export async function GET(request, context) {
 /**
  * @description Handles PUT requests to UPDATE a single entry with form data.
  */
-export async function PUT(request, context) {
-  // --- Applying the same robust pattern here for consistency ---
-  const { id } = context.params;
+export async function PUT(request) {
+  // --- Applying the same robust fix here ---
+  const url = new URL(request.url);
+  const pathSegments = url.pathname.split('/');
+  const id = pathSegments[pathSegments.length - 1];
 
   if (!id) {
     return NextResponse.json(
-      { error: 'Entry ID is missing from parameters' },
+      { error: 'Entry ID could not be determined from URL' },
       { status: 400 }
     );
   }
