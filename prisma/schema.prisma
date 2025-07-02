@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   role          Role      @default(TECHNICIAN)
   cycles        Cycle[]
+  timeLogs      TimeLog[] // Add this line
   accounts      Account[]
   sessions      Session[]
 }
@@ -92,4 +93,19 @@ enum Status {
   DRAFT
   SUBMITTED
   APPROVED
+}
+
+
+model TimeLog {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  technician   User      @relation(fields: [technicianId], references: [id])
+  technicianId String    @db.ObjectId
+  clockIn      DateTime  @default(now())
+  clockOut     DateTime?
+  status       LogStatus @default(CLOCKED_IN)
+}
+
+enum LogStatus {
+  CLOCKED_IN
+  CLOCKED_OUT
 }
