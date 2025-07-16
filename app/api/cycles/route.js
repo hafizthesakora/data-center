@@ -1,10 +1,9 @@
 // File: app/api/cycles/route.js
 
 import { NextResponse } from 'next/server';
-
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
 
 async function getSession() {
   return await getServerSession(authOptions);
@@ -33,6 +32,9 @@ export async function GET(request) {
       const recentlyApproved = await prisma.cycle.count({
         where: { status: 'APPROVED', approvedAt: { gte: today } },
       });
+      const rejectedCycles = await prisma.cycle.count({
+        where: { status: 'REJECTED' },
+      });
 
       const timeLogsToday = await prisma.timeLog.findMany({
         where: { clockIn: { gte: today }, status: 'CLOCKED_OUT' },
@@ -46,6 +48,7 @@ export async function GET(request) {
       stats = {
         pendingCycles,
         recentlyApproved,
+        rejectedCycles,
         totalHoursToday: totalHours.toFixed(1),
       };
     }
@@ -71,13 +74,25 @@ export async function POST(request) {
   }
 
   try {
+    // --- HOLIDAY LOGIC IMPLEMENTED HERE ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const holiday = await prisma.holiday.findUnique({
+      where: { date: today },
+    });
+
+    const numberOfEntries = holiday ? 5 : 7;
+    // --- END HOLIDAY LOGIC ---
+
     const newCycle = await prisma.cycle.create({
       data: {
         technicianId: session.user.id,
         status: 'DRAFT',
-        // --- CORRECTED LOGIC: Create 7 entries ---
         entries: {
-          create: Array.from({ length: 7 }, (_, i) => ({ entryNumber: i + 1 })),
+          create: Array.from({ length: numberOfEntries }, (_, i) => ({
+            entryNumber: i + 1,
+          })),
         },
       },
       include: { technician: true },

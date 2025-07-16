@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import TimeClock from './components/TimeClock';
 import TimeLogViewer from './components/TimeLogViewer';
 import DashboardStats from './components/DashboardStats';
+import HolidayCalendar from './components/HolidayCalendar'; // Import the new component
 import Image from 'next/image';
 
 export default function Dashboard() {
@@ -29,10 +30,8 @@ export default function Dashboard() {
         try {
           const res = await fetch('/api/cycles');
           if (res.ok) {
-            // --- CRITICAL FIX ---
-            // Destructure the 'cycles' and 'stats' properties from the response object
             const { cycles, stats } = await res.json();
-            setCycles(cycles || []); // Set only the array of cycles, default to empty array if undefined
+            setCycles(cycles || []);
             if (stats) setStats(stats);
           } else {
             console.error('Failed to fetch dashboard data');
@@ -48,14 +47,14 @@ export default function Dashboard() {
   }, [status, router]);
 
   const createCycle = async () => {
-    // This check will now work correctly since 'cycles' is an array
     const hasDraft = cycles.some(
       (cycle) =>
-        cycle.technicianId === session.user.id && cycle.status === 'DRAFT'
+        cycle.technicianId === session.user.id &&
+        (cycle.status === 'DRAFT' || cycle.status === 'REJECTED')
     );
     if (hasDraft) {
       alert(
-        'You must complete your current draft cycle before creating a new one.'
+        'You must complete or resubmit your current draft/rejected cycle before creating a new one.'
       );
       return;
     }
@@ -81,7 +80,6 @@ export default function Dashboard() {
     );
   }
 
-  // This filter will now work correctly since 'cycles' is guaranteed to be an array
   const filteredCycles = cycles.filter((cycle) =>
     cycle.technician.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -93,12 +91,6 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              {/* <Image
-                src="logo.svg"
-                alt="Datacenter Logo"
-                width={100}
-                height={100}
-              /> */}
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
                 Eni Ghana Datacenter Dashboard
               </h1>
@@ -211,7 +203,7 @@ export default function Dashboard() {
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                       {filteredCycles.length > 0 ? (
-                        filteredCycles.map((cycle, index) => (
+                        filteredCycles.map((cycle) => (
                           <tr
                             key={cycle.id}
                             className="hover:bg-slate-50/80 transition-colors duration-150"
@@ -240,6 +232,8 @@ export default function Dashboard() {
                                     ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
                                     : cycle.status === 'SUBMITTED'
                                     ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200'
+                                    : cycle.status === 'REJECTED'
+                                    ? 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200'
                                     : 'bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border border-slate-200'
                                 }`}
                               >
@@ -258,7 +252,11 @@ export default function Dashboard() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <Link
                                 href={`/cycles/${cycle.id}`}
-                                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                                className={`inline-flex items-center px-4 py-2 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 ${
+                                  cycle.status === 'REJECTED'
+                                    ? 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
+                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
+                                }`}
                               >
                                 <svg
                                   className="w-4 h-4 mr-1"
@@ -279,7 +277,9 @@ export default function Dashboard() {
                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                   />
                                 </svg>
-                                View
+                                {cycle.status === 'REJECTED'
+                                  ? 'Review'
+                                  : 'View'}
                               </Link>
                             </td>
                           </tr>
@@ -321,8 +321,14 @@ export default function Dashboard() {
           </main>
 
           <aside className="lg:col-span-1">
+            {/* --- INTEGRATION OF CALENDAR COMPONENT --- */}
             {session?.user?.role === 'TECHNICIAN' && <TimeClock />}
-            {session?.user?.role === 'APPROVER' && <TimeLogViewer />}
+            {session?.user?.role === 'APPROVER' && (
+              <div className="space-y-8">
+                <TimeLogViewer />
+                <HolidayCalendar />
+              </div>
+            )}
           </aside>
         </div>
       </div>

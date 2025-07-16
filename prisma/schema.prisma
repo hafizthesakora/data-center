@@ -75,6 +75,7 @@ model Cycle {
   createdAt   DateTime @default(now())
   submittedAt DateTime?
   approvedAt  DateTime?
+  rejectionComment  String?
   status      Status   @default(DRAFT)
   entries     Entry[]
 }
@@ -93,6 +94,7 @@ enum Status {
   DRAFT
   SUBMITTED
   APPROVED
+  REJECTED
 }
 
 
@@ -108,4 +110,9 @@ model TimeLog {
 enum LogStatus {
   CLOCKED_IN
   CLOCKED_OUT
+}
+
+model Holiday {
+  id   String   @id @default(auto()) @map("_id") @db.ObjectId
+  date DateTime @unique
 }

@@ -15,7 +15,8 @@ const StatCard = ({ title, value, icon, color }) => (
 );
 
 export default function DashboardStats({ stats }) {
-  const { pendingCycles, recentlyApproved, totalHoursToday } = stats;
+  const { pendingCycles, recentlyApproved, totalHoursToday, rejectedCycles } =
+    stats;
 
   const cards = [
     {
@@ -59,12 +60,12 @@ export default function DashboardStats({ stats }) {
       ),
     },
     {
-      title: 'Cycles Approved Today',
-      value: recentlyApproved,
-      color: 'border-green-400',
+      title: 'Cycles Rejected',
+      value: rejectedCycles,
+      color: 'border-red-500',
       icon: (
         <svg
-          className="h-8 w-8 text-green-400"
+          className="h-8 w-8 text-red-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -73,7 +74,7 @@ export default function DashboardStats({ stats }) {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
           />
         </svg>
       ),

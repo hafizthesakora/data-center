@@ -46,22 +46,27 @@ export async function GET(request) {
 }
 
 /**
- * @description Handles PUT requests to UPDATE a single cycle (e.g., change its status).
+ * @description Handles PUT requests to UPDATE a single cycle's status.
  */
 export async function PUT(request) {
-  // --- APPLYING THE SAME ROBUST FIX ---
   const url = new URL(request.url);
   const pathSegments = url.pathname.split('/');
   const id = pathSegments[pathSegments.length - 1];
 
   const body = await request.json();
-  const { status } = body;
+  // Destructure status and the new rejectionComment from the body
+  const { status, rejectionComment } = body;
 
   let updateData = { status };
+
   if (status === 'SUBMITTED') {
     updateData.submittedAt = new Date();
+    updateData.rejectionComment = null; // Clear any previous rejection comment
   } else if (status === 'APPROVED') {
     updateData.approvedAt = new Date();
+  } else if (status === 'REJECTED') {
+    // If rejecting, add the comment to the update payload
+    updateData.rejectionComment = rejectionComment;
   }
 
   try {
