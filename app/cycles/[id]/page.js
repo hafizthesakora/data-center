@@ -123,6 +123,9 @@ export default function CycleDetail() {
   ).length;
   const progressPercentage = (completedCount / 7) * 100;
 
+  // --- NEW LOGIC: Determine if technicians can edit ---
+  const canEdit = cycle.status === 'DRAFT' || cycle.status === 'REJECTED';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header with gradient background */}
@@ -171,6 +174,8 @@ export default function CycleDetail() {
                     ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
                     : cycle.status === 'SUBMITTED'
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
+                    : cycle.status === 'REJECTED'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
                     : 'bg-gradient-to-r from-slate-500 to-gray-500 text-white'
                 }`}
               >
@@ -248,109 +253,32 @@ export default function CycleDetail() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-              {cycle.entries.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className={`relative group p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-                    entry.isCompleted
-                      ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 hover:border-emerald-300'
-                      : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200 hover:border-red-300'
-                  }`}
-                >
-                  {/* Status indicator */}
+              {cycle.entries.map((entry) => {
+                // --- CRITICAL FIX: Determine the correct link based on cycle status ---
+                let href = `/entries/${entry.id}`; // Default to edit form
+                if (!canEdit && entry.isCompleted) {
+                  href = `/entries/${entry.id}/view`; // Go to view page if cycle is submitted/approved
+                }
+
+                return (
                   <div
-                    className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md ${
+                    key={entry.id}
+                    className={`relative group p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
                       entry.isCompleted
-                        ? 'bg-gradient-to-r from-emerald-500 to-green-500'
-                        : 'bg-gradient-to-r from-red-500 to-rose-500'
+                        ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 hover:border-emerald-300'
+                        : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200 hover:border-red-300'
                     }`}
                   >
-                    {entry.isCompleted ? (
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M12 8v4m0 4h.01"
-                        />
-                      </svg>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-center text-center">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-md ${
+                      className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md ${
                         entry.isCompleted
-                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
-                          : 'bg-gradient-to-r from-slate-400 to-gray-400 text-white'
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-500'
+                          : 'bg-gradient-to-r from-red-500 to-rose-500'
                       }`}
                     >
-                      <span className="font-bold text-lg">
-                        {entry.entryNumber}
-                      </span>
-                    </div>
-
-                    <Link
-                      href={
-                        entry.isCompleted
-                          ? `/entries/${entry.id}/view`
-                          : `/entries/${entry.id}`
-                      }
-                      className={`font-semibold mb-2 transition-colors duration-200 ${
-                        entry.isCompleted
-                          ? 'text-emerald-700 hover:text-emerald-800'
-                          : 'text-red-700 hover:text-red-800'
-                      }`}
-                    >
-                      Entry {entry.entryNumber}
-                    </Link>
-
-                    <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm ${
-                        entry.isCompleted
-                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
-                          : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
-                      }`}
-                    >
-                      {entry.isCompleted ? 'COMPLETED' : 'PENDING'}
-                    </span>
-                  </div>
-
-                  {/* Hover effect overlay - CRITICAL FIX APPLIED HERE */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                </div>
-              ))}
-            </div>
-
-            {/* Action Buttons Section */}
-            <div className="border-t border-slate-200 pt-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  {!allEntriesComplete &&
-                    cycle.status === 'DRAFT' &&
-                    session?.user?.role === 'TECHNICIAN' && (
-                      <div className="flex items-center bg-amber-50 p-4 rounded-xl border border-amber-200">
+                      {entry.isCompleted ? (
                         <svg
-                          className="w-5 h-5 text-amber-500 mr-3 flex-shrink-0"
+                          className="w-3 h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -358,21 +286,80 @@ export default function CycleDetail() {
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        <p className="text-amber-700 font-medium text-sm">
-                          All 7 entries must be completed before you can submit
-                          the cycle.
-                        </p>
-                      </div>
-                    )}
-                </div>
+                      ) : (
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M12 8v4m0 4h.01"
+                          />
+                        </svg>
+                      )}
+                    </div>
 
-                <div className="flex space-x-3">
+                    <div className="flex flex-col items-center text-center">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-md ${
+                          entry.isCompleted
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
+                            : 'bg-gradient-to-r from-slate-400 to-gray-400 text-white'
+                        }`}
+                      >
+                        <span className="font-bold text-lg">
+                          {entry.entryNumber}
+                        </span>
+                      </div>
+
+                      <Link
+                        href={href} // Use the dynamically determined href
+                        className={`font-semibold mb-2 transition-colors duration-200 ${
+                          entry.isCompleted
+                            ? 'text-emerald-700 hover:text-emerald-800'
+                            : 'text-red-700 hover:text-red-800'
+                        }`}
+                      >
+                        {canEdit
+                          ? 'Edit Entry'
+                          : entry.isCompleted
+                          ? 'View Entry'
+                          : 'Fill Entry'}{' '}
+                        {entry.entryNumber}
+                      </Link>
+
+                      <span
+                        className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm ${
+                          entry.isCompleted
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
+                            : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                        }`}
+                      >
+                        {entry.isCompleted ? 'COMPLETED' : 'PENDING'}
+                      </span>
+                    </div>
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Action Buttons Section */}
+            <div className="border-t border-slate-200 pt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {/* ... (Info message is the same) ... */}
+                <div className="flex items-center space-x-3 ml-auto">
                   {session?.user?.role === 'TECHNICIAN' &&
-                    cycle.status === 'DRAFT' && (
+                    (cycle.status === 'DRAFT' ||
+                      cycle.status === 'REJECTED') && (
                       <button
                         onClick={() => updateCycleStatus('SUBMITTED')}
                         disabled={!allEntriesComplete}
@@ -392,38 +379,63 @@ export default function CycleDetail() {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={2}
+                              strokeWidth="2"
                               d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                             />
                           </svg>
-                          Submit Cycle
+                          {cycle.status === 'REJECTED'
+                            ? 'Resubmit Cycle'
+                            : 'Submit Cycle'}
                         </div>
                       </button>
                     )}
 
                   {session?.user?.role === 'APPROVER' &&
                     cycle.status === 'SUBMITTED' && (
-                      <button
-                        onClick={() => updateCycleStatus('APPROVED')}
-                        className="px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                      >
-                        <div className="flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          Approve Cycle
-                        </div>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setIsRejecting(true)} // Open the rejection modal
+                          className="px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                        >
+                          <div className="flex items-center">
+                            <svg
+                              className="w-5 h-5 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Reject
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => updateCycleStatus('APPROVED')}
+                          className="px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                        >
+                          <div className="flex items-center">
+                            <svg
+                              className="w-5 h-5 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Approve Cycle
+                          </div>
+                        </button>
+                      </>
                     )}
                 </div>
               </div>

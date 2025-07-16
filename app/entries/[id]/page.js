@@ -470,45 +470,69 @@ export default function EntryFormPage() {
   const params = useParams();
   const { data: session, status } = useSession();
 
-  const id = params.id; // This is the ID of the Entry document
+  const id = params.id;
 
   const [formData, setFormData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [entryNumber, setEntryNumber] = useState(null);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      setFormData({
-        // This object will now hold data for all 16 forms
-        avr: {
-          staffName: session.user.name,
-          date: new Date().toLocaleDateString('en-CA'),
-          time: new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        },
-        ups40_1: {},
-        ups40_2: {},
-        ups80_1: {},
-        ups80_2: {},
-        pac1: {},
-        pac2: {},
-        pwrAc1: {},
-        pwrAc2: {},
-        pwrAc3: {},
-        pwrAc4: {},
-        avrAc1: {},
-        avrAc2: {},
-        drTfAc1: {},
-        drTfAc2: {},
-        fireSys: {},
-      });
-      setIsLoading(false);
-    } else if (status === 'unauthenticated') {
+    if (status === 'unauthenticated') {
       router.push('/login');
+      return;
     }
-  }, [status, session, router]);
+
+    if (status === 'authenticated' && id) {
+      const fetchAndSetData = async () => {
+        setIsLoading(true);
+        try {
+          const res = await fetch(`/api/entries/${id}`);
+          if (res.ok) {
+            const entryData = await res.json();
+            setEntryNumber(entryData.entryNumber);
+
+            // If data exists in the fetched entry, pre-fill the form.
+            if (entryData && entryData.data) {
+              setFormData(entryData.data);
+            } else {
+              // Otherwise, initialize a blank form structure.
+              setFormData({
+                avr: {
+                  staffName: session.user.name,
+                  date: new Date().toLocaleDateString('en-CA'),
+                  time: new Date().toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                },
+                ups40_1: {},
+                ups40_2: {},
+                ups80_1: {},
+                ups80_2: {},
+                pac1: {},
+                pac2: {},
+                pwrAc1: {},
+                pwrAc2: {},
+                pwrAc3: {},
+                pwrAc4: {},
+                avrAc1: {},
+                avrAc2: {},
+                drTfAc1: {},
+                drTfAc2: {},
+                fireSys: {},
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch entry data', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAndSetData();
+    }
+  }, [status, id, router, session]);
 
   const handleFormChange = (formKey, e) => {
     const { name, value } = e.target;
@@ -531,13 +555,13 @@ export default function EntryFormPage() {
     const res = await fetch(`/api/entries/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: formData }), // Send the entire formData object
+      body: JSON.stringify({ data: formData }),
     });
     if (res.ok) {
       const updatedEntry = await res.json();
       router.push(`/cycles/${updatedEntry.cycleId}`);
     } else {
-      alert('Failed to submit entry. Please try again.');
+      alert('Failed to save changes. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -545,7 +569,7 @@ export default function EntryFormPage() {
   if (isLoading || !formData) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p>Loading...</p>
+        <p>Loading Entry Form...</p>
       </div>
     );
   }
@@ -555,7 +579,9 @@ export default function EntryFormPage() {
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
         <div className="bg-white p-6 rounded-lg shadow-xl sticky top-4 z-10">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">Complete Entry</h1>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Editing Entry {entryNumber}
+            </h1>
             <button
               type="button"
               onClick={() => router.back()}
@@ -566,18 +592,20 @@ export default function EntryFormPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm text-gray-600">
             <p>
-              <span className="font-semibold">Staff:</span> {session.user.name}
+              <span className="font-semibold">Staff:</span>{' '}
+              {formData.avr?.staffName || session.user.name}
             </p>
             <p>
               <span className="font-semibold">Date:</span>{' '}
-              {new Date().toLocaleDateString('en-CA')}
+              {formData.avr?.date || new Date().toLocaleDateString('en-CA')}
             </p>
             <p>
               <span className="font-semibold">Time:</span>{' '}
-              {new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formData.avr?.time ||
+                new Date().toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
             </p>
           </div>
         </div>
@@ -669,7 +697,7 @@ export default function EntryFormPage() {
               disabled={isSubmitting}
               className="ml-3 inline-flex justify-center py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Complete Entry'}
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
