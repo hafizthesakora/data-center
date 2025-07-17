@@ -114,16 +114,16 @@ export default function CycleDetail() {
     );
   }
 
-  const allEntriesComplete =
-    cycle.entries.length === 7 &&
-    cycle.entries.every((entry) => entry.isCompleted);
-
+  const totalEntries = cycle.entries.length;
   const completedCount = cycle.entries.filter(
     (entry) => entry.isCompleted
   ).length;
-  const progressPercentage = (completedCount / 7) * 100;
 
-  // --- NEW LOGIC: Determine if technicians can edit ---
+  const allEntriesComplete =
+    totalEntries > 0 && completedCount === totalEntries;
+  const progressPercentage =
+    totalEntries > 0 ? (completedCount / totalEntries) * 100 : 0;
+
   const canEdit = cycle.status === 'DRAFT' || cycle.status === 'REJECTED';
 
   return (
@@ -215,7 +215,7 @@ export default function CycleDetail() {
               Progress Overview
             </h2>
             <div className="text-sm font-semibold text-slate-600">
-              {completedCount} of 7 entries completed
+              {completedCount} of {totalEntries} entries completed
             </div>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
