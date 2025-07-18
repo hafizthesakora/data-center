@@ -2,21 +2,23 @@
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
+// --- HELPER FUNCTION TO GET THE SESSION ---
+async function getSession() {
+  return await getServerSession(authOptions);
+}
 
 /**
  * @description Handles GET requests to fetch a SINGLE cycle by its ID.
- * This is the route that populates the Cycle Detail page.
  */
-export async function GET(request) {
-  // --- NEW, MORE ROBUST FIX ---
-  // Manually parsing the ID from the request URL to bypass the params issue.
-  const url = new URL(request.url);
-  const pathSegments = url.pathname.split('/');
-  const id = pathSegments[pathSegments.length - 1]; // The ID is the last part of the path
+export async function GET(request, context) {
+  const { id } = context.params;
 
   if (!id) {
     return NextResponse.json(
-      { error: 'Cycle ID could not be determined from URL' },
+      { error: 'Cycle ID is required' },
       { status: 400 }
     );
   }
@@ -36,7 +38,6 @@ export async function GET(request) {
 
     return NextResponse.json(cycle);
   } catch (error) {
-    // It's helpful to log the specific ID that caused the error
     console.error(`GET /api/cycles/${id} Error:`, error);
     return NextResponse.json(
       { error: 'Failed to fetch cycle details' },
@@ -48,24 +49,19 @@ export async function GET(request) {
 /**
  * @description Handles PUT requests to UPDATE a single cycle's status.
  */
-export async function PUT(request) {
-  const url = new URL(request.url);
-  const pathSegments = url.pathname.split('/');
-  const id = pathSegments[pathSegments.length - 1];
-
+export async function PUT(request, context) {
+  const { id } = context.params;
   const body = await request.json();
-  // Destructure status and the new rejectionComment from the body
   const { status, rejectionComment } = body;
 
   let updateData = { status };
 
   if (status === 'SUBMITTED') {
     updateData.submittedAt = new Date();
-    updateData.rejectionComment = null; // Clear any previous rejection comment
+    updateData.rejectionComment = null;
   } else if (status === 'APPROVED') {
     updateData.approvedAt = new Date();
   } else if (status === 'REJECTED') {
-    // If rejecting, add the comment to the update payload
     updateData.rejectionComment = rejectionComment;
   }
 
@@ -80,6 +76,51 @@ export async function PUT(request) {
     console.error(`PUT /api/cycles/${id} Error:`, error);
     return NextResponse.json(
       { error: 'Failed to update cycle' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @description Handles DELETE requests to remove a cycle and its entries.
+ * Restricted to Approvers only.
+ */
+export async function DELETE(request, context) {
+  // This call will now work correctly
+  const session = await getSession();
+  if (session?.user?.role !== 'APPROVER') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  const { id } = context.params;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: 'Cycle ID is required' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Use a transaction to ensure both operations succeed or fail together
+    await prisma.$transaction([
+      // First, delete all entries associated with the cycle
+      prisma.entry.deleteMany({
+        where: { cycleId: id },
+      }),
+      // Then, delete the cycle itself
+      prisma.cycle.delete({
+        where: { id },
+      }),
+    ]);
+
+    return NextResponse.json({
+      message: 'Cycle and associated entries deleted successfully',
+    });
+  } catch (error) {
+    console.error(`DELETE /api/cycles/${id} Error:`, error);
+    return NextResponse.json(
+      { error: 'Failed to delete cycle' },
       { status: 500 }
     );
   }

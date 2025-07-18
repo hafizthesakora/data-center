@@ -9,8 +9,60 @@ import { useRouter } from 'next/navigation';
 import TimeClock from './components/TimeClock';
 import TimeLogViewer from './components/TimeLogViewer';
 import DashboardStats from './components/DashboardStats';
-import HolidayCalendar from './components/HolidayCalendar'; // Import the new component
+import HolidayCalendar from './components/HolidayCalendar';
 import Image from 'next/image';
+
+// --- Delete Confirmation Modal Component ---
+const DeleteCycleModal = ({ cycle, onConfirm, onCancel, isDeleting }) => {
+  if (!cycle) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+        <div className="flex items-center mb-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+            <svg
+              className="w-6 h-6 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              ></path>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800">Confirm Deletion</h2>
+        </div>
+        <p className="text-sm text-slate-600 mb-6">
+          Are you sure you want to permanently delete the cycle created by{' '}
+          <strong>{cycle.technician.name}</strong> on{' '}
+          <strong>{new Date(cycle.createdAt).toLocaleDateString()}</strong>?
+          This action cannot be undone.
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="bg-slate-200 text-slate-700 px-5 py-2 rounded-xl font-semibold hover:bg-slate-300 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(cycle.id)}
+            disabled={isDeleting}
+            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-5 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:from-red-600 hover:to-rose-600 transition-all duration-200 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -18,6 +70,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cycleToDelete, setCycleToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +123,26 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteCycle = async (cycleId) => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/cycles/${cycleId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setCycles((prevCycles) => prevCycles.filter((c) => c.id !== cycleId));
+        setCycleToDelete(null);
+      } else {
+        alert('Failed to delete the cycle. Please try again.');
+      }
+    } catch (error) {
+      alert('An error occurred while deleting the cycle.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
@@ -86,9 +160,15 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Header with gradient background */}
+      <DeleteCycleModal
+        cycle={cycleToDelete}
+        onConfirm={handleDeleteCycle}
+        onCancel={() => setCycleToDelete(null)}
+        isDeleting={isDeleting}
+      />
+
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="w-4/5 mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
@@ -114,7 +194,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-4/5 mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {session?.user?.role === 'APPROVER' && <DashboardStats stats={stats} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
@@ -250,37 +330,60 @@ export default function Dashboard() {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <Link
-                                href={`/cycles/${cycle.id}`}
-                                className={`inline-flex items-center px-4 py-2 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 ${
-                                  cycle.status === 'REJECTED'
-                                    ? 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
-                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
-                                }`}
-                              >
-                                <svg
-                                  className="w-4 h-4 mr-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                              <div className="flex items-center space-x-2">
+                                <Link
+                                  href={`/cycles/${cycle.id}`}
+                                  className={`inline-flex items-center px-4 py-2 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 ${
+                                    cycle.status === 'REJECTED'
+                                      ? 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
+                                      : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
+                                  }`}
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                  />
-                                </svg>
-                                {cycle.status === 'REJECTED'
-                                  ? 'Review'
-                                  : 'View'}
-                              </Link>
+                                  <svg
+                                    className="w-4 h-4 mr-1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                    />
+                                  </svg>
+                                  {cycle.status === 'REJECTED'
+                                    ? 'Review'
+                                    : 'View'}
+                                </Link>
+                                {session?.user?.role === 'APPROVER' && (
+                                  <button
+                                    onClick={() => setCycleToDelete(cycle)}
+                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                    title="Delete Cycle"
+                                  >
+                                    <svg
+                                      className="w-5 h-5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      ></path>
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -321,7 +424,6 @@ export default function Dashboard() {
           </main>
 
           <aside className="lg:col-span-1">
-            {/* --- INTEGRATION OF CALENDAR COMPONENT --- */}
             {session?.user?.role === 'TECHNICIAN' && <TimeClock />}
             {session?.user?.role === 'APPROVER' && (
               <div className="space-y-8">
